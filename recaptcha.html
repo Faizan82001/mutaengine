@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google reCAPTCHA v3 Test</title>
+    <script
+        src="https://www.google.com/recaptcha/enterprise.js?render=6LdJI0kqAAAAACnK7lJNkq9ejZQUqJf2OTWgnPet"></script>
+</head>
+
+<body>
+
+    <h2>Google reCAPTCHA v3 Test</h2>
+
+    <form id="recaptcha-form">
+        <input type="submit" value="Submit">
+    </form>
+
+    <script>
+        document.getElementById('recaptcha-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            grecaptcha.enterprise.ready(async () => {
+                const token = await grecaptcha.enterprise.execute('6LdJI0kqAAAAACnK7lJNkq9ejZQUqJf2OTWgnPet', { action: 'submit' });
+                console.log('reCAPTCHA token:', token);
+            });
+        });
+    </script>
+
+</body>
+
+</html>
