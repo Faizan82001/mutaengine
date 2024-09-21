@@ -211,12 +211,13 @@ LOGGING = {
             'formatter': 'simple',
             'level': 'INFO',
         },
-        'file': {
-            'class': 'logging.FileHandler',
-            'formatter': "simple",
-            'filename': os.path.join(LOGGING_DIR, 'logfile.log'),
-            'level': 'INFO',
-        },
+        # Optional: Log File (if required)
+        # 'file': {
+        #     'class': 'logging.FileHandler',
+        #     'formatter': "simple",
+        #     'filename': os.path.join(LOGGING_DIR, 'logfile.log'),
+        #     'level': 'INFO',
+        # },
         'mail_admins': {
             'class': 'django.utils.log.AdminEmailHandler',
             'formatter': 'simple',
@@ -225,7 +226,7 @@ LOGGING = {
     },
     'loggers': {
         '': {
-            'handlers': ['console', 'file', 'mail_admins'],
+            'handlers': ['console', 'mail_admins'],
             'level': 'INFO',
             'propagate': True,
         },
