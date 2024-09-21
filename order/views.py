@@ -1,15 +1,16 @@
-from django.http import JsonResponse
-from rest_framework import exceptions, permissions, status
-import stripe 
-from .models import Order, OrderItem
+import stripe
+import logging
 from cart.models import Cart
-from django.conf import settings
-from .serializers import OrderSerializer
+from order.models import Order, OrderItem
+from order.serializers import OrderSerializer
 from mutaengine.base_view import BaseAPIView
 from mutaengine.utils import custom_response, send_invoice_email
-
+from django.http import JsonResponse
+from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from rest_framework import exceptions, permissions, status
+
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -49,12 +50,11 @@ class OrderView(BaseAPIView):
                             },
                             'unit_amount': int(total_amount * 100),  # Convert to cents
                         },
-                        'quantity': 1,
                     },
                 ],
                 mode='payment',
-                success_url=settings.AFTER_PAYMENT_REDIRECT_URL,  # Frontend success page
-                cancel_url=settings.AFTER_PAYMENT_REDIRECT_URL,    # Frontend cancel page
+                success_url=settings.AFTER_PAYMENT_REDIRECT_URL,
+                cancel_url=settings.AFTER_PAYMENT_REDIRECT_URL,
             )
 
             # Create the Order in your database
@@ -74,8 +74,7 @@ class OrderView(BaseAPIView):
                    price=item.total_price,
                 )
 
-            # Clear the user's cart
-            cart_items.delete()
+            # cart_items.delete()
 
             return custom_response(
                 message="Order created successfully.",
@@ -111,6 +110,7 @@ class OrderView(BaseAPIView):
 
 
 class StripeWebhookView(BaseAPIView):
+    logger = logging.getLogger('stripe_webhook')
     permission_classes = []
 
     @method_decorator(csrf_exempt)
@@ -123,33 +123,38 @@ class StripeWebhookView(BaseAPIView):
             event = stripe.Webhook.construct_event(
                 payload, sig_header, endpoint_secret
             )
+            self.logger.info('Webhook received: %s', event)
         except ValueError as e:
             # Invalid payload
+            self.logger.error('Invalid payload: %s', str(e))
             return JsonResponse({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except stripe.error.SignatureVerificationError as e:
             # Invalid signature
+            self.logger.error('Invalid signature: %s', str(e))  # Log error for invalid signature
             return JsonResponse({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
         # Handle the event
         session = event['data']['object']
+        order = Order.objects.filter(external_order_id=session['id']).first()
 
         if event['type'] == 'checkout.session.completed':
-
             # Find the order based on the Stripe Checkout Session ID
-            order = Order.objects.filter(external_order_id=session['id']).first()
+            cart = Cart.objects.filter(user=order.user)
+
             if order:
                 # Mark the order as completed
                 order.status = 'COMPLETED'
+                cart.items.delete()     # Clear Cart
                 send_invoice_email(order.user, order)
                 order.save()
+                self.logger.info('Order marked as completed: %s', order.id)
         
         elif event['type'] == 'payment_intent.payment_failed':
-
             # Find the order based on the Stripe Checkout Session ID
-            order = Order.objects.filter(external_order_id=session['id']).first()
             if order:
                 # Mark the order as completed
                 order.status = 'FAILED'
                 order.save()
+                self.logger.info('Order marked as failed: %s', order.id)
 
         return JsonResponse({'status': 'success'}, status=status.HTTP_200_OK)

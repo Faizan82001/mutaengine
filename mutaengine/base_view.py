@@ -1,6 +1,7 @@
 from rest_framework import views, status, exceptions
 from mutaengine.utils import custom_response
 
+
 class BaseAPIView(views.APIView):
     def handle_request(self, request, action, *args, **kwargs):
         try:

@@ -29,12 +29,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = [
-    'd47c-103-250-137-94.ngrok-free.app',
-    'mutaengine-test.de.r.appspot.com'
-]
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split(',')
 
 
 # Application definition
@@ -46,7 +43,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.sites',    
+    'django.contrib.sites',
+    'rest_framework_simplejwt.token_blacklist',
+    'drf_yasg',
     'authentication',
     'product',
     'cart',
@@ -146,6 +145,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# EMAIL FIELDS
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.getenv('EMAIL_HOST')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
@@ -154,32 +154,85 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
 FRONTEND_URL = os.getenv('FRONTEND_URL')
-PASSWORD_RESET_MAIL_TEMPLATE_ID = os.getenv('PASSWORD_RESET_MAIL_TEMPLATE_ID')
-INVOICE_MAIL_TEMPLATE_ID = os.getenv('INVOICE_MAIL_TEMPLATE_ID')
 SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL')
 
+# Google Signup/login Fields
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.getenv('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')
 
+# Google Recaptcha Fields
 RECAPTCHA_SECRET_KEY = os.getenv('RECAPTCHA_SECRET_KEY')
 RECAPTCHA_VERIFICATION_URL = os.getenv('RECAPTCHA_VERIFICATION_URL')
 
+# Stripe Fields
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 AFTER_PAYMENT_REDIRECT_URL = os.getenv('AFTER_PAYMENT_REDIRECT_URL')
 
+# Rest Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
 
+# Simple JWT
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=2),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
     'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+# Swagger Settings
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'basic': {
+            'type': 'basic'
+        }
+    },
+}
+
+# Logging Settings
+LOGGING_DIR = os.path.join(BASE_DIR, 'logs')
+if not os.path.exists(LOGGING_DIR):
+    os.makedirs(LOGGING_DIR)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    "formatters": {
+        "simple": {
+            "format": "{asctime} {name} {levelname} {process:d} {thread:d} {module}\n{message}\n============================================\n",
+            "style": "{",
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+            'level': 'INFO',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'formatter': "simple",
+            'filename': os.path.join(LOGGING_DIR, 'logfile.log'),
+            'level': 'INFO',
+        },
+        'mail_admins': {
+            'class': 'django.utils.log.AdminEmailHandler',
+            'formatter': 'simple',
+            'level': 'CRITICAL'
+        }
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console', 'file', 'mail_admins'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    }
 }

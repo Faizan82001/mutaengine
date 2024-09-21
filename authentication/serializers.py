@@ -1,18 +1,16 @@
 from authentication import validators
 from mutaengine.utils import send_password_reset_email, verify_recaptcha
-
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.conf import settings
 from django.utils.http import int_to_base36
 from django.contrib.auth.tokens import default_token_generator
-
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
-
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed, NotFound, ValidationError
+
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     username = serializers.CharField(required=True)
@@ -93,6 +91,7 @@ class CustomTokenObtainSerializer(serializers.Serializer):
                 'last_name': user.last_name,
             }
         }
+
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()

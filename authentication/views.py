@@ -1,9 +1,11 @@
-from django.contrib.auth.models import User
-from rest_framework import status, generics
-from rest_framework.permissions import AllowAny
-from .serializers import UserRegistrationSerializer, CustomTokenObtainSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer, GoogleSignInSerializer
 from mutaengine.utils import custom_response
 from mutaengine.base_view import BaseAPIView
+from authentication.serializers import UserRegistrationSerializer, CustomTokenObtainSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer, GoogleSignInSerializer
+from django.contrib.auth.models import User
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import status, generics
+from rest_framework.permissions import AllowAny, IsAuthenticated
+
 
 class RegisterUserView(BaseAPIView, generics.CreateAPIView):
     queryset = User.objects.all()
@@ -77,7 +79,8 @@ class PasswordResetRequestView(BaseAPIView, generics.GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         return self.handle_request(request, self.send_password_reset_link, *args, **kwargs)
-    
+
+
 class PasswordResetConfirmView(BaseAPIView, generics.GenericAPIView):
     serializer_class = PasswordResetConfirmSerializer
     permission_classes = [AllowAny]
@@ -99,7 +102,32 @@ class PasswordResetConfirmView(BaseAPIView, generics.GenericAPIView):
     
     def post(self, request, *args, **kwargs):
         return self.handle_request(request, self.password_reset, *args, **kwargs)
-    
+
+
+class LogoutView(BaseAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def logout_user(self, request, *args, **kwargs):
+        try:
+            refresh_token = request.data["refresh_token"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return custom_response(
+                message="Logout successful.",
+                data={},
+                status_code=status.HTTP_205_RESET_CONTENT
+            )
+        except Exception as e:
+            return custom_response(
+                message="Logout failed.",
+                data={"error": str(e)},
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+    def post(self, request, *args, **kwargs):
+        return self.handle_request(request, self.logout_user, *args, **kwargs)
+
     
 class GoogleSignInView(BaseAPIView):
     permission_classes = (AllowAny,)
