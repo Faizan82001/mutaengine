@@ -53,8 +53,8 @@ class OrderView(BaseAPIView):
                     },
                 ],
                 mode='payment',
-                success_url="https://www.google.com",  # Frontend success page
-                cancel_url="https://www.google.com",    # Frontend cancel page
+                success_url=settings.AFTER_PAYMENT_REDIRECT_URL,  # Frontend success page
+                cancel_url=settings.AFTER_PAYMENT_REDIRECT_URL,    # Frontend cancel page
             )
 
             # Create the Order in your database
@@ -136,6 +136,7 @@ class StripeWebhookView(BaseAPIView):
 
             # Find the order based on the Stripe Checkout Session ID
             order = Order.objects.filter(external_order_id=session['id']).first()
+            breakpoint()
             if order:
                 # Mark the order as completed
                 order.status = 'COMPLETED'

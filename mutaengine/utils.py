@@ -1,7 +1,15 @@
+import os
 import base64
 import requests
-import os
 import mailtrap as mt
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.lib.enums import TA_CENTER
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib.pagesizes import letter
 
 from django.conf import settings
 from rest_framework.response import Response
@@ -27,17 +35,17 @@ def custom_response(status_code: int, message: str, data=None):
     
 def send_password_reset_email(user, reset_link):
     mail = mt.MailFromTemplate(
-        sender=mt.Address(email="mailtrap@demomailtrap.com", name="MutaEngine Test"),
-        to=[mt.Address(email="faizanigigani@gmail.com")],
-        template_uuid="c728b89b-b69e-4ce2-8a9a-8b8cc5bc43fc",
+        sender=mt.Address(email=settings.DEFAULT_FROM_EMAIL, name=settings.MAILTRAP_SERVICE_NAME),
+        to=[mt.Address(email=user.email)],
+        template_uuid=settings.PASSWORD_RESET_MAIL_TEMPLATE_ID,
         template_variables={
             "user_email": user.email,
             "pass_reset_link": reset_link,
-            "support_email": "faizanigigani@gmail.com"
+            "support_email": settings.SUPPORT_EMAIL
         }
     )
 
-    client = mt.MailtrapClient(token="abad4c41e9c007cf7811da00b828505c")
+    client = mt.MailtrapClient(token=settings.EMAIL_HOST_PASSWORD)
     response = client.send(mail)
     
     if not response.get('success'):
@@ -48,7 +56,7 @@ def verify_recaptcha(recaptcha_response):
     """
     Verifies reCAPTCHA token with Google's API
     """
-    url = 'https://www.google.com/recaptcha/api/siteverify'
+    url = settings.RECAPTCHA_VERIFICATION_URL
     data = {
         'secret': settings.RECAPTCHA_SECRET_KEY,
         'response': recaptcha_response
@@ -62,15 +70,6 @@ def verify_recaptcha(recaptcha_response):
 
     return True
 
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.units import inch
-from reportlab.lib.enums import TA_CENTER
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Image
-from reportlab.lib import utils
-from reportlab.lib.pagesizes import letter
-import os
 
 def generate_invoice_pdf(user, order, invoice_dir="invoices"):
     # Create an invoice directory if it doesn't exist
@@ -155,7 +154,7 @@ def generate_invoice_pdf(user, order, invoice_dir="invoices"):
     normal_style = styles['Normal']  # Get the Normal style
 
     # Custom style for the clickable link
-    clickable_email = '<a href="mailto:faizanigigani@gmail.com"><font color="blue"><u>support</u></font></a>'
+    clickable_email = f'<a href="mailto:{settings.SUPPORT_EMAIL}"><font color="blue"><u>support</u></font></a>'
 
     # Constructing the paragraph with a clickable email link
     text = f'If you have any questions, feel free to contact us at {clickable_email}.'
@@ -185,13 +184,13 @@ def send_invoice_email(user, order):
         })
 
     mail = mt.MailFromTemplate(
-        sender=mt.Address(email="mailtrap@demomailtrap.com", name="MutaEngine Test"),
-        to=[mt.Address(email='faizanigigani@gmail.com')],
-        template_uuid="a075f1a8-e662-49e0-94e4-af5ce22d8e60",  # Replace with your template ID
+        sender=mt.Address(email=settings.DEFAULT_FROM_EMAIL, name=settings.MAILTRAP_SERVICE_NAME),
+        to=[mt.Address(email=user.email)],
+        template_uuid=settings.INVOICE_MAIL_TEMPLATE_ID,  # Replace with your template ID
         template_variables={
             "user_name": f"{user.first_name} {user.last_name}",
             "order_details": order_details,
-            "support_email": "faizanigigani@gmail.com",
+            "support_email": settings.SUPPORT_EMAIL,
             "total_amount": str(order.total_amount),
         }
     )
@@ -206,7 +205,7 @@ def send_invoice_email(user, order):
             )
         ]
 
-    client = mt.MailtrapClient(token="abad4c41e9c007cf7811da00b828505c")
+    client = mt.MailtrapClient(token=settings.EMAIL_HOST_PASSWORD)
     response = client.send(mail)
     
     if not response.get('success'):

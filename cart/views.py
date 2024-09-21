@@ -3,7 +3,6 @@ from .models import Cart, CartItem
 from product.models import Product
 from .serializers import CartSerializer, CartItemSerializer
 from rest_framework.permissions import IsAuthenticated
-from django.shortcuts import get_object_or_404
 from mutaengine.base_view import BaseAPIView
 from mutaengine.utils import custom_response
 

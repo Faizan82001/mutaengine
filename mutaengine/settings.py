@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 import os
+import dj_database_url
 from datetime import timedelta
 from dotenv import load_dotenv
 from pathlib import Path
@@ -28,10 +29,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = [
-    'cada-2402-a00-401-dee6-109c-95d7-30be-342d.ngrok-free.app'
+    'cada-2402-a00-401-dee6-109c-95d7-30be-342d.ngrok-free.app',
+    'mutaengine-test.de.r.appspot.com'
 ]
 
 
@@ -86,10 +88,19 @@ WSGI_APPLICATION = 'mutaengine.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
+    # 'default': dj_database_url.config(conn_max_age=600, ssl_require=True)
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.postgresql',
+    #     'NAME': 'postgres',  # Replace with your actual database name
+    #     'USER': 'postgres',        # Replace with your database user
+    #     'PASSWORD': 'postgres', # Replace with your database password
+    #     'HOST': '127.0.0.1',           # This should be set to '127.0.0.1' for TCP
+    #     'PORT': '3307',                # Use the port you bound in the proxy (3307 in your case)
+    # }
 }
 
 
@@ -127,31 +138,38 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.getenv('EMAIL_HOST')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS') == 'True'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+MAILTRAP_SERVICE_NAME = os.getenv('MAILTRAP_SERVICE_NAME')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
 MAILTRAP_API_KEY = os.getenv('MAILTRAP_API_KEY')
 FRONTEND_URL = os.getenv('FRONTEND_URL')
-
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+PASSWORD_RESET_MAIL_TEMPLATE_ID = os.getenv('PASSWORD_RESET_MAIL_TEMPLATE_ID')
+INVOICE_MAIL_TEMPLATE_ID = os.getenv('INVOICE_MAIL_TEMPLATE_ID')
+SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL')
 
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.getenv('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')
 
 RECAPTCHA_SECRET_KEY = os.getenv('RECAPTCHA_SECRET_KEY')
+RECAPTCHA_VERIFICATION_URL = os.getenv('RECAPTCHA_VERIFICATION_URL')
 
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
+AFTER_PAYMENT_REDIRECT_URL = os.getenv('AFTER_PAYMENT_REDIRECT_URL')
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',

@@ -108,7 +108,6 @@ class GoogleSignInView(BaseAPIView):
         serializer = GoogleSignInSerializer(data=request.data)
 
         if serializer.is_valid():
-            # Call the create method from the serializer to get the JWT tokens and user data
             result = serializer.save()
 
             return custom_response(

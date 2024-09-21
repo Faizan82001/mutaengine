@@ -23,7 +23,7 @@ def validate_password(password, username, email):
         raise serializers.ValidationError("Password must contain at least one digit.")
 
     # Check for at least one special character
-    if not re.search(r'[\W_]', password):  # \W is for non-word characters, including special characters
+    if not re.search(r'[\W_]', password):
         raise serializers.ValidationError("Password must contain at least one special character.")
     
     return password
