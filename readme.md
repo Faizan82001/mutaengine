@@ -119,3 +119,12 @@ Now the project should be running at `http://127.0.0.1:8000/`.
      ALLOWED_HOSTS=your_gcp_allowed_hosts
      ```
    - The app's configuration file for GCP, `app.yaml`, should contain the necessary details for deploying to App Engine. An example file `template_app.yaml` has been added to this project scope.
+
+
+## Extras
+1. [Swagger Doc](https://mutaengine-test.de.r.appspot.com/redoc/) is available here.
+2. Save some time and import these postman files:
+   - [API Collection](https://drive.google.com/file/d/1ObC1lk2iRKunmN_bwtbDhMUOQXJvQp8X/view?usp=sharing)
+   - [Environment](https://drive.google.com/file/d/1ZBQBnbM0oKn7T0ykmLafpMQfo-uBTbbF/view?usp=sharing)
+
+
