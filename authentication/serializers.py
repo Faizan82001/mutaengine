@@ -1,3 +1,4 @@
+import logging
 from authentication import validators
 from mutaengine.utils import send_password_reset_email, verify_recaptcha
 from google.oauth2 import id_token
@@ -10,6 +11,9 @@ from django.contrib.auth.tokens import default_token_generator
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed, NotFound, ValidationError
+
+
+logger = logging.getLogger(__name__)
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -73,11 +77,13 @@ class CustomTokenObtainSerializer(serializers.Serializer):
                User.objects.filter(email=username_or_email).first()
 
         if user is None:
+            logger.info(f"User with {username_or_email} not found")
             raise NotFound('User not found.')
 
         user = authenticate(username=user.username, password=password)
 
         if user is None:
+            logger.info(f"{username_or_email} entered incorrect password")
             raise AuthenticationFailed('Incorrect password.')
 
         refresh = RefreshToken.for_user(user)
@@ -125,6 +131,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             user_id = int(uid, 36)
             user = User.objects.get(pk=user_id)
         except (ValueError, User.DoesNotExist):
+            logger.error(f"Invalid rest link used with token: {token} and uid: {uid}")
             raise ValidationError("Invalid reset link.")
         
         if not default_token_generator.check_token(user, token):
@@ -159,16 +166,21 @@ class GoogleSignInSerializer(serializers.Serializer):
             idinfo = id_token.verify_oauth2_token(id_token_str, google_requests.Request(), settings.GOOGLE_CLIENT_ID)
 
             if 'email' not in idinfo or 'sub' not in idinfo:
+                logger.exception(f"Invalid Google Id Token used: {id_token_str}.\nData: {idinfo}")
                 raise AuthenticationFailed("Invalid Google token")
             
             email = idinfo['email']
 
             # Get or create the user based on the email
-            user, created = User.objects.get_or_create(email=email, defaults={
-                'username': email.split('@')[0],
-                'first_name': idinfo.get('given_name', ''),
-                'last_name': idinfo.get('family_name', ''),
-            })
+            try:
+                user, created = User.objects.get_or_create(email=email, defaults={
+                    'username': email.split('@')[0],
+                    'first_name': idinfo.get('given_name', ''),
+                    'last_name': idinfo.get('family_name', ''),
+                })
+            except User.MultipleObjectsReturned:
+                logger.exception(f"More than 1 user instance with email{email} found.")
+                raise Exception("More than 1 account with same email address present. Contact Admin to proceed,")
 
             attrs['user'] = user
             attrs['created'] = created

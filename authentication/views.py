@@ -1,10 +1,15 @@
+import logging
 from mutaengine.utils import custom_response
 from mutaengine.base_view import BaseAPIView
 from authentication.serializers import UserRegistrationSerializer, CustomTokenObtainSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer, GoogleSignInSerializer
+from django.utils import timezone
 from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import status, generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
+
+
+logger = logging.getLogger(__name__)
 
 
 class RegisterUserView(BaseAPIView, generics.CreateAPIView):
@@ -13,9 +18,11 @@ class RegisterUserView(BaseAPIView, generics.CreateAPIView):
     permission_classes = (AllowAny,)
     
     def create_user(self, request, *args, **kwargs):
+        logger.info(f"User registration attempt at {timezone.now()} with data: {request.data}")
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            logger.info(f"User Creation Successful: {user.username} & {user.email}")
             return custom_response(
                 message="User registered successfully",
                 data={
@@ -27,6 +34,7 @@ class RegisterUserView(BaseAPIView, generics.CreateAPIView):
                 status_code=status.HTTP_201_CREATED
             )
         else:
+            logger.error(f"Failed to register user: {serializer.errors} with data: {request.data}")
             return custom_response(
                 message="User registration failed",
                 data=serializer.errors,
@@ -48,6 +56,7 @@ class CustomTokenObtainView(BaseAPIView):
                 status_code=status.HTTP_200_OK
             )
         else:
+            logger.error(f"Login failed: {serializer.errors}")
             return custom_response(
                 message="Invalid credentials",
                 data=serializer.errors,
@@ -66,6 +75,7 @@ class PasswordResetRequestView(BaseAPIView, generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
+            logger.info(f"Successfully sent password reset link at {request.data['email']}")
             return custom_response(
                 message="Password reset email sent.",
                 data={},
@@ -94,6 +104,8 @@ class PasswordResetConfirmView(BaseAPIView, generics.GenericAPIView):
                 data={},
                 status_code=status.HTTP_200_OK
             )
+
+        logger.error(f"Password reset failed: {serializer.errors} for data: {request.data}")
         return custom_response(
             message="Invalid token or password reset failed.",
             data=serializer.errors,
@@ -144,6 +156,7 @@ class GoogleSignInView(BaseAPIView):
                 status_code=status.HTTP_200_OK
             )
         else:
+            logger.error(f"Google Sign In Failed: {serializer.errors}")
             return custom_response(
                 message="Invalid credentials",
                 data=serializer.errors,

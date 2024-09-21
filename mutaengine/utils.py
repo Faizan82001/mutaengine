@@ -1,6 +1,6 @@
-import os
 import requests
 import tempfile
+import logging
 
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
@@ -16,6 +16,8 @@ from reportlab.lib.pagesizes import letter
 
 from django.conf import settings
 from rest_framework.response import Response
+
+logger = logging.getLogger(__name__)
 
 def custom_response(status_code: int, message: str, data=None):
     """
@@ -53,8 +55,10 @@ def send_password_reset_email(user, reset_link):
     email.attach_alternative(html_content, "text/html")
     try:
         email.send()
+        logger.info(f"Password Reset email successfully sent to {user.email}")
         return True
     except Exception as e:
+        logger.exception(f"500 Error(Failed to send email): {str(e)}")
         raise Exception(f"Error sending email: {str(e)}")
     
 
@@ -72,6 +76,7 @@ def verify_recaptcha(recaptcha_response):
     result = response.json()
 
     if not result.get('success') or result.get('score', 0) < 0.5:
+        logger.info(f"Invalid reCaptcha used. Probably a bot tried to access the endpoint.")
         return False
 
     return True
@@ -79,12 +84,9 @@ def verify_recaptcha(recaptcha_response):
 
 def generate_invoice_pdf(user, order):
     # Create an invoice directory if it doesn't exist
+    logger.info(f"Starting PDF generation for order#{order.id}")
     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmpfile:
         invoice_pdf_path = tmpfile.name
-
-        # # Define the invoice file path
-        # pdf_filename = f"invoice_{order.id}.pdf"
-        # pdf_path = os.path.join(invoice_dir, pdf_filename)
 
         # Create a PDF document
         pdf = SimpleDocTemplate(invoice_pdf_path, pagesize=letter)
@@ -177,6 +179,7 @@ def generate_invoice_pdf(user, order):
         # Build the PDF
         pdf.build(elements)
 
+        logger.info(f"Successful PDF generation for order#{order.id}")
         return invoice_pdf_path
 
 def send_invoice_email(user, order):
@@ -212,10 +215,12 @@ def send_invoice_email(user, order):
     # Attach the PDF invoice
     with open(invoice_pdf_path, 'rb') as f:
         email.attach(f"invoice_{order.id}.pdf", f.read(), "application/pdf")
+        logger.info(f"Invoice PDF successfully attached to email({user.email})")
 
-    # Send the email
     try:
         email.send()
+        logger.info(f"Invoice email successfully sent to {user.email} for order#{order.id}")
         return True
     except Exception as e:
+        logger.error(f"500 Error(Failed to send invoice email): {str(e)}")
         raise Exception(f"Failed to send invoice email: {str(e)}")

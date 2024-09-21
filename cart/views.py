@@ -1,3 +1,4 @@
+import logging
 from cart.models import Cart, CartItem
 from cart.serializers import CartSerializer, CartItemSerializer
 from product.models import Product
@@ -7,12 +8,16 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status, exceptions
 
 
+logger = logging.getLogger(__name__)
+
+
 class CartView(BaseAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_cart(self, request):
         cart, created = Cart.objects.get_or_create(user=request.user)
         serializer = CartSerializer(cart)
+        logger.info(f"User {request.user.username} retrieved cart successfully")
         return custom_response(
             message="Cart retrieved successfully",
             data=serializer.data,
@@ -24,6 +29,7 @@ class CartView(BaseAPIView):
         quantity = request.data.get('quantity') or 1
 
         if not product_id:
+            logger.exception(f"{request.user.username}'s request is missing product_id")
             return custom_response(
                 message="Product ID is required",
                 data={},
@@ -32,6 +38,7 @@ class CartView(BaseAPIView):
 
         product = Product.objects.filter(id=product_id).first()
         if not product:
+            logger.exception(f"{request.user.username} tried to add product with id {product_id}")
             raise exceptions.NotFound
         
         cart, created = Cart.objects.get_or_create(user=request.user)
@@ -39,10 +46,12 @@ class CartView(BaseAPIView):
         cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
         cart_item.quantity = cart_item.quantity + int(quantity)
         cart_item.save()
-
+        cart_item_data = CartItemSerializer(cart_item).data
+        
+        logger.info(f"Cart updated by user: {request.user.username}\nAdded Cart Item: {cart_item_data}")
         return custom_response(
             message="Product added to cart",
-            data=CartItemSerializer(cart_item).data,
+            data=cart_item_data,
             status_code=status.HTTP_200_OK
         )
 
@@ -51,6 +60,7 @@ class CartView(BaseAPIView):
         quantity = request.data.get('quantity')
 
         if not product_id:
+            logger.exception(f"{request.user.username}'s request is missing product_id")
             return custom_response(
                 message="Product ID is required",
                 data={},
@@ -59,10 +69,12 @@ class CartView(BaseAPIView):
 
         cart = Cart.objects.filter(user=request.user).first()
         if not cart:
+            logger.info(f"{request.user.username} has no cart")
             raise exceptions.NotFound
         
         cart_item = CartItem.objects.filter(cart=cart, product__id=product_id).first()
         if not cart_item:
+            logger.info(f"{request.user.username} tried to remove invalid cart item: {product_id}")
             return custom_response(
                 message="Product not in cart",
                 data={},
@@ -70,10 +82,12 @@ class CartView(BaseAPIView):
             )
 
         if not quantity or cart_item.quantity < quantity:
+            logger.info(f"{request.user.username} removed product with id({cart_item.product.id}) from the cart")
             cart_item.delete()
         else:
             cart_item.quantity -= quantity
             cart_item.save()
+            logger.info(f"{request.user.username} decreased product with id({cart_item.product.id})'s quantity by {quantity}")
 
         return custom_response(
             message="Product removed from cart",

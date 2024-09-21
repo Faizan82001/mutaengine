@@ -60,6 +60,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'mutaengine.middlewares.RequestLoggingMiddleware',
 ]
 
 ROOT_URLCONF = 'mutaengine.urls'
@@ -87,18 +88,12 @@ WSGI_APPLICATION = 'mutaengine.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    # 'default': dj_database_url.config(conn_max_age=600, ssl_require=True)
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(conn_max_age=600, ssl_require=True)
+    
+    # For LOCAL use
     # 'default': {
-    #     'ENGINE': 'django.db.backends.postgresql',
-    #     'NAME': 'postgres',  # Replace with your actual database name
-    #     'USER': 'postgres',        # Replace with your database user
-    #     'PASSWORD': 'postgres', # Replace with your database password
-    #     'HOST': '127.0.0.1',           # This should be set to '127.0.0.1' for TCP
-    #     'PORT': '3307',                # Use the port you bound in the proxy (3307 in your case)
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': BASE_DIR / 'db.sqlite3',
     # }
 }
 
