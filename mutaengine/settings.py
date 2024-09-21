@@ -32,7 +32,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = False
 
 ALLOWED_HOSTS = [
-    'cada-2402-a00-401-dee6-109c-95d7-30be-342d.ngrok-free.app',
+    'd47c-103-250-137-94.ngrok-free.app',
     'mutaengine-test.de.r.appspot.com'
 ]
 
@@ -152,9 +152,7 @@ EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS') == 'True'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-MAILTRAP_SERVICE_NAME = os.getenv('MAILTRAP_SERVICE_NAME')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
-MAILTRAP_API_KEY = os.getenv('MAILTRAP_API_KEY')
 FRONTEND_URL = os.getenv('FRONTEND_URL')
 PASSWORD_RESET_MAIL_TEMPLATE_ID = os.getenv('PASSWORD_RESET_MAIL_TEMPLATE_ID')
 INVOICE_MAIL_TEMPLATE_ID = os.getenv('INVOICE_MAIL_TEMPLATE_ID')

@@ -1,7 +1,9 @@
 import os
-import base64
 import requests
-import mailtrap as mt
+
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
@@ -34,22 +36,23 @@ def custom_response(status_code: int, message: str, data=None):
     
     
 def send_password_reset_email(user, reset_link):
-    mail = mt.MailFromTemplate(
-        sender=mt.Address(email=settings.DEFAULT_FROM_EMAIL, name=settings.MAILTRAP_SERVICE_NAME),
-        to=[mt.Address(email=user.email)],
-        template_uuid=settings.PASSWORD_RESET_MAIL_TEMPLATE_ID,
-        template_variables={
-            "user_email": user.email,
-            "pass_reset_link": reset_link,
-            "support_email": settings.SUPPORT_EMAIL
-        }
-    )
+    subject = "Password Reset Request"
+    html_content = render_to_string('password_reset_email.html', {
+        'user': user,
+        'reset_link': reset_link
+    })
+    text_content = strip_tags(html_content)
 
-    client = mt.MailtrapClient(token=settings.EMAIL_HOST_PASSWORD)
-    response = client.send(mail)
-    
-    if not response.get('success'):
-        raise Exception(f"Failed to send email: {response.text}")
+    from_email = settings.DEFAULT_FROM_EMAIL
+    to_email = [user.email]
+
+    email = EmailMultiAlternatives(subject, text_content, from_email, to_email)
+    email.attach_alternative(html_content, "text/html")
+    try:
+        email.send()
+        return True
+    except Exception as e:
+        raise Exception(f"Error sending email: {str(e)}")
     
 
 def verify_recaptcha(recaptcha_response):
@@ -172,43 +175,39 @@ def send_invoice_email(user, order):
     # Generate the PDF invoice
     invoice_pdf_path = generate_invoice_pdf(user, order)
 
-    # Order details (for the email body)
+    # Order details for the email body
     order_details = []
-
     for item in order.items.all():
         order_details.append({
-            "image_url": item.product.image,
+            "image_url": item.product.image,  # Make sure you access the URL
             "product_name": item.product.title,
             "quantity": str(item.quantity),
             "price": str(item.price)
         })
 
-    mail = mt.MailFromTemplate(
-        sender=mt.Address(email=settings.DEFAULT_FROM_EMAIL, name=settings.MAILTRAP_SERVICE_NAME),
-        to=[mt.Address(email=user.email)],
-        template_uuid=settings.INVOICE_MAIL_TEMPLATE_ID,  # Replace with your template ID
-        template_variables={
-            "user_name": f"{user.first_name} {user.last_name}",
-            "order_details": order_details,
-            "support_email": settings.SUPPORT_EMAIL,
-            "total_amount": str(order.total_amount),
-        }
+    # Prepare the email subject and body
+    subject = "Your Invoice from Our Store"
+    html_content = render_to_string('invoice_email.html', {
+        'user_name': f"{user.first_name} {user.last_name}",
+        'order_details': order_details,
+        'total_amount': str(order.total_amount),
+        'support_email': settings.SUPPORT_EMAIL,
+    })
+    text_content = strip_tags(html_content)
+
+    # Create the email
+    email = EmailMultiAlternatives(
+        subject, text_content, settings.DEFAULT_FROM_EMAIL, [user.email]
     )
+    email.attach_alternative(html_content, "text/html")
 
-    # Attach the PDF invoice to the email
+    # Attach the PDF invoice
     with open(invoice_pdf_path, 'rb') as f:
-        mail.attachments = [
-            mt.Attachment(
-                content=base64.b64encode(f.read()),
-                filename=f"invoice_{order.id}.pdf",
-                mimetype="application/pdf"
-            )
-        ]
+        email.attach(f"invoice_{order.id}.pdf", f.read(), "application/pdf")
 
-    client = mt.MailtrapClient(token=settings.EMAIL_HOST_PASSWORD)
-    response = client.send(mail)
-    
-    if not response.get('success'):
-        raise Exception(f"Failed to send invoice email: {response.text}")
-
-    return response
+    # Send the email
+    try:
+        email.send()
+        return True
+    except Exception as e:
+        raise Exception(f"Failed to send invoice email: {str(e)}")

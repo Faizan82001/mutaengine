@@ -132,11 +132,11 @@ class StripeWebhookView(BaseAPIView):
         
         # Handle the event
         session = event['data']['object']
+
         if event['type'] == 'checkout.session.completed':
 
             # Find the order based on the Stripe Checkout Session ID
             order = Order.objects.filter(external_order_id=session['id']).first()
-            breakpoint()
             if order:
                 # Mark the order as completed
                 order.status = 'COMPLETED'
